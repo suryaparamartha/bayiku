@@ -636,7 +636,7 @@ function openPopup(type,editEntry=null){
   if(f.includes('ml_dbf'))html+=`<div class="form-field"><div class="form-label">Jumlah diminum (ml, opsional)</div><input type="number" class="form-input" id="p-ml-dbf" placeholder="misal: 60" min="0" value="${isEdit&&editEntry.ml?editEntry.ml:''}"></div>`;
   if(f.includes('catatan'))html+=`<div class="form-field full"><div class="form-label">Catatan (opsional)</div><textarea class="form-input" id="p-catatan" placeholder="tambahkan catatan...">${isEdit&&editEntry.catatan?editEntry.catatan:''}</textarea></div>`;
   html+='</div><button class="popup-save" id="popup-save-btn" onclick="savePopup()">'+(isEdit?'💾 Simpan Perubahan':'💾 Simpan')+'</button>';
-  if(isEdit)html+=`<button onclick="deleteEntry(${editEntry.id});closePopup();" style="width:100%;margin-top:8px;padding:10px;background:none;border:1px solid var(--border);border-radius:11px;font-size:13px;color:var(--red);cursor:pointer;font-family:'DM Sans',sans-serif;">Hapus entri ini</button>`;
+  if(isEdit)html+=`<button onclick="deleteFromPopup(${editEntry.id})" style="width:100%;margin-top:8px;padding:10px;background:none;border:1px solid var(--border);border-radius:11px;font-size:13px;color:var(--red);cursor:pointer;font-family:'DM Sans',sans-serif;">🗑 Hapus entri ini</button>`;
   document.getElementById('popup-body').innerHTML=html;
   document.getElementById('popup-overlay').classList.add('open');
   if(f.includes('waktu_mulai'))calcDur();
@@ -702,6 +702,11 @@ async function savePopup(){
 function closePopup(){document.getElementById('popup-overlay').classList.remove('open');}
 function closePopupIfOutside(e){if(e.target===document.getElementById('popup-overlay'))closePopup();}
 
+async function deleteFromPopup(id){
+  closePopup();
+  await deleteEntry(id);
+}
+
 async function deleteEntry(id){
   await deleteLogDB(id);
   logs=logs.filter(e=>e.id!==id);
@@ -716,11 +721,17 @@ function logHTML(e){
   else if(e.durasi)parts.push(e.durasi+' menit');
   if(e.ml)parts.push(e.ml+' ml');
   if(e.catatan)parts.push(e.catatan);
-  return`<div class="log-item" onclick="openPopup('${e.type}',${JSON.stringify(e).replace(/'/g,'&#39;')})" style="cursor:pointer;">
+  return`<div class="log-item" data-id="${e.id}" onclick="openEditPopup(${e.id})" style="cursor:pointer;">
     <div class="log-left"><div class="log-icon">${e.label.slice(0,2)}</div>
     <div><div class="log-type">${e.label.slice(2).trim()}</div>${parts.length?`<div class="log-detail">${parts.join(' · ')}</div>`:''}</div></div>
-    <div class="log-right"><div class="log-time">${e.waktu}</div><span style="font-size:11px;color:var(--text3);">✏️</span></div>
+    <div class="log-right"><div class="log-time">${e.waktu}</div><span style="font-size:14px;color:var(--text3);">✏️</span></div>
   </div>`;
+}
+
+function openEditPopup(id){
+  const entry=logs.find(e=>e.id===id);
+  if(!entry)return;
+  openPopup(entry.type,entry);
 }
 
 function renderHomeLog(){
@@ -822,12 +833,12 @@ function getGoals(ageDays,weightGram){
 }
 
 function goalBarHTML(current,min,max,unit){
-  const pct=Math.min(Math.round(current/max*100),120);
-  let cls='green',status='';
-  if(current===0)cls='';
-  else if(current<min){cls='yellow';status=' ⚠';}
-  else if(current>max){cls='over';status=' ↑';}
-  return`<div class="goal-bar-bg"><div class="goal-bar-fill ${cls}" style="width:${Math.min(pct,100)}%"></div></div>
+  const pct=Math.min(Math.round(current/max*100),100);
+  let color,status='';
+  if(current===0)color='var(--surface2)';
+  else if(current<min){color='#e8b84a';status=' ⚠';}
+  else{color='#7fbf8e';}
+  return`<div class="goal-bar-bg"><div class="goal-bar-fill" style="width:${pct}%;background:${color};"></div></div>
     <div style="font-size:10px;color:var(--text3);margin-top:2px;">${current}${unit} / ${min}–${max}${unit}${status}</div>`;
 }
 
@@ -835,21 +846,19 @@ function stackedBarHTML(mlBotol,mlDbf,min,max){
   const total=mlBotol+mlDbf;
   const pctBotol=Math.min(Math.round(mlBotol/max*100),100);
   const pctDbf=Math.min(Math.round(mlDbf/max*100),100-pctBotol);
-  let status='';
-  if(total===0){}
-  else if(total<min)status=' ⚠';
-  else if(total>max)status=' ↑';
+  let botolColor,status='';
+  if(mlBotol===0)botolColor='transparent';
+  else if(total<min){botolColor='#e8b84a';status=' ⚠';}
+  else{botolColor='#7fbf8e';}
   return`<div class="goal-bar-bg" style="display:flex;overflow:hidden;border-radius:4px;">
-    <div style="height:7px;width:${pctBotol}%;background:#7ab4d4;transition:width .6s;flex-shrink:0;"></div>
-    <div style="height:7px;width:${pctDbf}%;background:#7fbf8e;transition:width .6s;flex-shrink:0;"></div>
+    <div style="height:7px;width:${pctBotol}%;background:${botolColor};transition:width .6s;flex-shrink:0;"></div>
+    <div style="height:7px;width:${pctDbf}%;background:#7ab4d4;transition:width .6s;flex-shrink:0;"></div>
   </div>
   <div style="font-size:10px;color:var(--text3);margin-top:3px;display:flex;gap:10px;flex-wrap:wrap;">
     <span>${total}ml / ${min}–${max}ml${status}</span>
-    ${mlDbf>0?`<span style="display:flex;align-items:center;gap:3px;"><span style="width:8px;height:8px;border-radius:50%;background:#7fbf8e;display:inline-block;"></span>DBF: ${mlDbf}ml</span>`:''}
+    ${mlDbf>0?`<span style="display:flex;align-items:center;gap:3px;"><span style="width:8px;height:8px;border-radius:50%;background:#7ab4d4;display:inline-block;"></span>DBF: ${mlDbf}ml</span>`:''}
   </div>`;
 }
-
-function renderGoals(){
   const ageDays=getBabyAgeInDays();
   const prompt=document.getElementById('setup-prompt');
   const card=document.getElementById('goals-card');
