@@ -614,22 +614,32 @@ const POPUP_CONFIG={
   vitamin:{label:'💊 Vitamin',fields:['waktu','catatan']},
 };
 
-function openPopup(type){
+let editingEntryId=null;
+
+function openEditPopup(id){
+  const entry=logs.find(e=>e.id===id);
+  if(!entry)return;
+  openPopup(entry.type,entry);
+}
+
+function openPopup(type,editEntry=null){
   currentPopupType=type;
+  editingEntryId=editEntry?editEntry.id:null;
   const cfg=POPUP_CONFIG[type];
-  document.getElementById('popup-title').innerHTML=cfg.label+'<button class="popup-close" onclick="closePopup()">Tutup</button>';
+  const isEdit=!!editEntry;
+  document.getElementById('popup-title').innerHTML=(isEdit?'✏️ Edit — ':'')+cfg.label+'<button class="popup-close" onclick="closePopup()">Tutup</button>';
   const f=cfg.fields;
   let html='<div class="form-grid">';
-  if(f.includes('waktu'))html+=`<div class="form-field"><div class="form-label">Waktu</div><input type="time" class="form-input" id="p-waktu" value="${nowStr()}"></div>`;
+  if(f.includes('waktu'))html+=`<div class="form-field"><div class="form-label">Waktu</div><input type="time" class="form-input" id="p-waktu" value="${isEdit?editEntry.waktu:nowStr()}"></div>`;
   if(f.includes('waktu_mulai')){
-    html+=`<div class="form-field"><div class="form-label">Waktu mulai tidur</div><input type="time" class="form-input" id="p-mulai" value="${nowStr()}" oninput="calcDur()"></div>`;
-    html+=`<div class="form-field"><div class="form-label">Waktu bangun</div><input type="time" class="form-input" id="p-bangun" value="${nowStr()}" oninput="calcDur()"></div>`;
+    html+=`<div class="form-field"><div class="form-label">Waktu mulai tidur</div><input type="time" class="form-input" id="p-mulai" value="${isEdit&&editEntry.mulai?editEntry.mulai:nowStr()}" oninput="calcDur()"></div>`;
+    html+=`<div class="form-field"><div class="form-label">Waktu bangun</div><input type="time" class="form-input" id="p-bangun" value="${isEdit&&editEntry.bangun?editEntry.bangun:nowStr()}" oninput="calcDur()"></div>`;
     html+=`<div class="form-field full"><div class="dur-calc" id="dur-calc"></div></div>`;
   }
-  if(f.includes('ml'))html+=`<div class="form-field"><div class="form-label">Jumlah diminum (ml)</div><input type="number" class="form-input" id="p-ml" placeholder="misal: 80" min="0"></div>`;
-  if(f.includes('durasi'))html+=`<div class="form-field"><div class="form-label">Durasi (menit)</div><input type="number" class="form-input" id="p-durasi" placeholder="misal: 15" min="1"></div>`;
-  if(f.includes('catatan'))html+=`<div class="form-field full"><div class="form-label">Catatan (opsional)</div><textarea class="form-input" id="p-catatan" placeholder="tambahkan catatan..."></textarea></div>`;
-  html+='</div><button class="popup-save" id="popup-save-btn" onclick="savePopup()">💾 Simpan</button>';
+  if(f.includes('ml'))html+=`<div class="form-field"><div class="form-label">Jumlah diminum (ml)</div><input type="number" class="form-input" id="p-ml" placeholder="misal: 80" min="0" value="${isEdit&&editEntry.ml?editEntry.ml:''}"></div>`;
+  if(f.includes('durasi'))html+=`<div class="form-field"><div class="form-label">Durasi (menit)</div><input type="number" class="form-input" id="p-durasi" placeholder="misal: 15" min="1" value="${isEdit&&editEntry.durasi?editEntry.durasi:''}"></div>`;
+  if(f.includes('catatan'))html+=`<div class="form-field full"><div class="form-label">Catatan (opsional)</div><textarea class="form-input" id="p-catatan" placeholder="tambahkan catatan...">${isEdit&&editEntry.catatan?editEntry.catatan:''}</textarea></div>`;
+  html+='</div><button class="popup-save" id="popup-save-btn" onclick="savePopup()">'+(isEdit?'💾 Simpan Perubahan':'💾 Simpan')+'</button>';
   document.getElementById('popup-body').innerHTML=html;
   document.getElementById('popup-overlay').classList.add('open');
   if(f.includes('waktu_mulai'))calcDur();
@@ -659,20 +669,34 @@ async function savePopup(){
     waktu=mulai;
     dur_min=timeToMins(bangun)-timeToMins(mulai);
     if(dur_min<0)dur_min+=24*60;
-    // FIX: sleep entry date = date of waktu_mulai (today's date)
     date=todayStr();
   }
   if(f.includes('ml'))ml=parseInt(document.getElementById('p-ml')?.value)||null;
   if(f.includes('durasi'))durasi=parseInt(document.getElementById('p-durasi')?.value)||null;
   if(f.includes('catatan'))catatan=document.getElementById('p-catatan')?.value||'';
-  const entry={id:Date.now(),date,ts:Date.now(),type,label:cfg.label,waktu,mulai:mulai||null,bangun:bangun||null,dur_min,ml,durasi,catatan};
-  const saved=await insertLog(entry);
-  btn.disabled=false;btn.textContent='💾 Simpan';
-  if(!saved)return;
-  logs.unshift(saved);
-  closePopup();
-  renderHomeLog();updateStats();updateNextFeed();renderGoals();
-  showToast('✓ Tersimpan'+(ml?' · '+ml+' ml':'')+(dur_min?' · '+formatDur(dur_min):''));
+
+  if(editingEntryId){
+    setSyncStatus('syncing');
+    const updates={waktu,mulai:mulai||null,bangun:bangun||null,dur_min,ml,durasi,catatan};
+    const{error}=await sb.from('logs').update(updates).eq('id',editingEntryId).eq('user_id',currentUser.id);
+    btn.disabled=false;btn.textContent='💾 Simpan Perubahan';
+    if(error){setSyncStatus('error');showToast('⚠ Gagal simpan');return;}
+    setSyncStatus('ok');
+    const idx=logs.findIndex(e=>e.id===editingEntryId);
+    if(idx!==-1)logs[idx]={...logs[idx],...updates};
+    closePopup();
+    renderHomeLog();renderFullLog(currentFilter);updateStats();updateNextFeed();renderGoals();
+    showToast('✓ Entri diperbarui');
+  } else {
+    const entry={id:Date.now(),date,ts:Date.now(),type,label:cfg.label,waktu,mulai:mulai||null,bangun:bangun||null,dur_min,ml,durasi,catatan};
+    const saved=await insertLog(entry);
+    btn.disabled=false;btn.textContent='💾 Simpan';
+    if(!saved)return;
+    logs.unshift(saved);
+    closePopup();
+    renderHomeLog();updateStats();updateNextFeed();renderGoals();
+    showToast('✓ Tersimpan'+(ml?' · '+ml+' ml':'')+(dur_min?' · '+formatDur(dur_min):''));
+  }
 }
 
 function closePopup(){document.getElementById('popup-overlay').classList.remove('open');}
@@ -692,10 +716,10 @@ function logHTML(e){
   else if(e.durasi)parts.push(e.durasi+' menit');
   if(e.ml)parts.push(e.ml+' ml');
   if(e.catatan)parts.push(e.catatan);
-  return`<div class="log-item">
+  return`<div class="log-item" style="cursor:pointer;" onclick="openEditPopup(${e.id})">
     <div class="log-left"><div class="log-icon">${e.label.slice(0,2)}</div>
     <div><div class="log-type">${e.label.slice(2).trim()}</div>${parts.length?`<div class="log-detail">${parts.join(' · ')}</div>`:''}</div></div>
-    <div class="log-right"><div class="log-time">${e.waktu}</div><button class="log-del" onclick="deleteEntry(${e.id})">×</button></div>
+    <div class="log-right"><div class="log-time">${e.waktu}</div><button class="log-del" onclick="event.stopPropagation();deleteEntry(${e.id})">×</button></div>
   </div>`;
 }
 
