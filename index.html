@@ -324,14 +324,13 @@ textarea.form-input{resize:vertical;min-height:65px;}
         <button class="action-btn" onclick="openPopup('vitamin')"><div class="ab-icon">💊</div><div class="ab-label">Vitamin</div></button>
       </div>
       <div class="stats-row">
-        <div class="stat-box"><div class="stat-num" id="s-dbf">—</div><div class="stat-lbl">DBF hari ini</div></div>
+        <div class="stat-box"><div class="stat-num" id="s-minum">0</div><div class="stat-lbl">Minum hari ini</div></div>
         <div class="stat-box"><div class="stat-num" id="s-ml">0</div><div class="stat-lbl">Total ml</div></div>
         <div class="stat-box"><div class="stat-num" id="s-popok">0</div><div class="stat-lbl">Ganti popok</div></div>
       </div>
       <div class="card">
         <div class="card-hdr"><div class="card-title">📋 Log Hari Ini</div><div class="card-badge" id="log-badge">0 entri</div></div>
         <div id="home-log" class="log-list"><div class="empty-state"><div class="ei">🌙</div><p>Belum ada catatan hari ini.<br>Tap tombol di atas untuk mulai.</p></div></div>
-        <div id="lihat-selengkapnya" style="display:none;text-align:center;margin-top:10px;"><button onclick="showSection('log')" style="background:none;border:none;color:var(--accent);font-size:13px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;padding:4px 0;">Lihat selengkapnya →</button></div>
       </div>
     </div>
 
@@ -606,7 +605,7 @@ function showSection(id){
 const POPUP_CONFIG={
   asip:{label:'🍼 Botol ASIP',fields:['waktu','ml','catatan']},
   formula:{label:'🥛 Susu Formula',fields:['waktu','ml','catatan']},
-  dbf:{label:'🤱 DBF',fields:['waktu','durasi','ml_dbf','catatan']},
+  dbf:{label:'🤱 DBF',fields:['waktu','durasi','catatan']},
   tidur:{label:'😴 Tidur',fields:['waktu_mulai','waktu_bangun','catatan']},
   bab:{label:'💩 BAB',fields:['waktu','catatan']},
   bak:{label:'💧 BAK',fields:['waktu','catatan']},
@@ -615,28 +614,22 @@ const POPUP_CONFIG={
   vitamin:{label:'💊 Vitamin',fields:['waktu','catatan']},
 };
 
-let editingEntryId=null;
-
-function openPopup(type,editEntry=null){
+function openPopup(type){
   currentPopupType=type;
-  editingEntryId=editEntry?editEntry.id:null;
   const cfg=POPUP_CONFIG[type];
-  const isEdit=!!editEntry;
-  document.getElementById('popup-title').innerHTML=(isEdit?'✏️ Edit — ':'')+cfg.label+'<button class="popup-close" onclick="closePopup()">Tutup</button>';
+  document.getElementById('popup-title').innerHTML=cfg.label+'<button class="popup-close" onclick="closePopup()">Tutup</button>';
   const f=cfg.fields;
   let html='<div class="form-grid">';
-  if(f.includes('waktu'))html+=`<div class="form-field"><div class="form-label">Waktu</div><input type="time" class="form-input" id="p-waktu" value="${isEdit?editEntry.waktu:nowStr()}"></div>`;
+  if(f.includes('waktu'))html+=`<div class="form-field"><div class="form-label">Waktu</div><input type="time" class="form-input" id="p-waktu" value="${nowStr()}"></div>`;
   if(f.includes('waktu_mulai')){
-    html+=`<div class="form-field"><div class="form-label">Waktu mulai tidur</div><input type="time" class="form-input" id="p-mulai" value="${isEdit&&editEntry.mulai?editEntry.mulai:nowStr()}" oninput="calcDur()"></div>`;
-    html+=`<div class="form-field"><div class="form-label">Waktu bangun</div><input type="time" class="form-input" id="p-bangun" value="${isEdit&&editEntry.bangun?editEntry.bangun:nowStr()}" oninput="calcDur()"></div>`;
+    html+=`<div class="form-field"><div class="form-label">Waktu mulai tidur</div><input type="time" class="form-input" id="p-mulai" value="${nowStr()}" oninput="calcDur()"></div>`;
+    html+=`<div class="form-field"><div class="form-label">Waktu bangun</div><input type="time" class="form-input" id="p-bangun" value="${nowStr()}" oninput="calcDur()"></div>`;
     html+=`<div class="form-field full"><div class="dur-calc" id="dur-calc"></div></div>`;
   }
-  if(f.includes('ml'))html+=`<div class="form-field"><div class="form-label">Jumlah diminum (ml)</div><input type="number" class="form-input" id="p-ml" placeholder="misal: 80" min="0" value="${isEdit&&editEntry.ml?editEntry.ml:''}"></div>`;
-  if(f.includes('durasi'))html+=`<div class="form-field"><div class="form-label">Durasi (menit)</div><input type="number" class="form-input" id="p-durasi" placeholder="misal: 15" min="1" value="${isEdit&&editEntry.durasi?editEntry.durasi:''}"></div>`;
-  if(f.includes('ml_dbf'))html+=`<div class="form-field"><div class="form-label">Jumlah diminum (ml, opsional)</div><input type="number" class="form-input" id="p-ml-dbf" placeholder="misal: 60" min="0" value="${isEdit&&editEntry.ml?editEntry.ml:''}"></div>`;
-  if(f.includes('catatan'))html+=`<div class="form-field full"><div class="form-label">Catatan (opsional)</div><textarea class="form-input" id="p-catatan" placeholder="tambahkan catatan...">${isEdit&&editEntry.catatan?editEntry.catatan:''}</textarea></div>`;
-  html+='</div><button class="popup-save" id="popup-save-btn" onclick="savePopup()">'+(isEdit?'💾 Simpan Perubahan':'💾 Simpan')+'</button>';
-  if(isEdit)html+=`<button onclick="deleteFromPopup(${editEntry.id})" style="width:100%;margin-top:8px;padding:10px;background:none;border:1px solid var(--border);border-radius:11px;font-size:13px;color:var(--red);cursor:pointer;font-family:'DM Sans',sans-serif;">🗑 Hapus entri ini</button>`;
+  if(f.includes('ml'))html+=`<div class="form-field"><div class="form-label">Jumlah diminum (ml)</div><input type="number" class="form-input" id="p-ml" placeholder="misal: 80" min="0"></div>`;
+  if(f.includes('durasi'))html+=`<div class="form-field"><div class="form-label">Durasi (menit)</div><input type="number" class="form-input" id="p-durasi" placeholder="misal: 15" min="1"></div>`;
+  if(f.includes('catatan'))html+=`<div class="form-field full"><div class="form-label">Catatan (opsional)</div><textarea class="form-input" id="p-catatan" placeholder="tambahkan catatan..."></textarea></div>`;
+  html+='</div><button class="popup-save" id="popup-save-btn" onclick="savePopup()">💾 Simpan</button>';
   document.getElementById('popup-body').innerHTML=html;
   document.getElementById('popup-overlay').classList.add('open');
   if(f.includes('waktu_mulai'))calcDur();
@@ -666,46 +659,24 @@ async function savePopup(){
     waktu=mulai;
     dur_min=timeToMins(bangun)-timeToMins(mulai);
     if(dur_min<0)dur_min+=24*60;
+    // FIX: sleep entry date = date of waktu_mulai (today's date)
     date=todayStr();
   }
   if(f.includes('ml'))ml=parseInt(document.getElementById('p-ml')?.value)||null;
-  if(f.includes('ml_dbf'))ml=parseInt(document.getElementById('p-ml-dbf')?.value)||null;
   if(f.includes('durasi'))durasi=parseInt(document.getElementById('p-durasi')?.value)||null;
   if(f.includes('catatan'))catatan=document.getElementById('p-catatan')?.value||'';
-
-  if(editingEntryId){
-    // EDIT mode
-    setSyncStatus('syncing');
-    const updates={waktu,mulai:mulai||null,bangun:bangun||null,dur_min,ml,durasi,catatan};
-    const{error}=await sb.from('logs').update(updates).eq('id',editingEntryId).eq('user_id',currentUser.id);
-    btn.disabled=false;btn.textContent='💾 Simpan Perubahan';
-    if(error){setSyncStatus('error');showToast('⚠ Gagal simpan');return;}
-    setSyncStatus('ok');
-    const idx=logs.findIndex(e=>e.id===editingEntryId);
-    if(idx!==-1)logs[idx]={...logs[idx],...updates};
-    closePopup();
-    renderHomeLog();renderFullLog(currentFilter);updateStats();updateNextFeed();renderGoals();
-    showToast('✓ Entri diperbarui');
-  } else {
-    // NEW mode
-    const entry={id:Date.now(),date,ts:Date.now(),type,label:cfg.label,waktu,mulai:mulai||null,bangun:bangun||null,dur_min,ml,durasi,catatan};
-    const saved=await insertLog(entry);
-    btn.disabled=false;btn.textContent='💾 Simpan';
-    if(!saved)return;
-    logs.unshift(saved);
-    closePopup();
-    renderHomeLog();updateStats();updateNextFeed();renderGoals();
-    showToast('✓ Tersimpan'+(ml?' · '+ml+' ml':'')+(dur_min?' · '+formatDur(dur_min):''));
-  }
+  const entry={id:Date.now(),date,ts:Date.now(),type,label:cfg.label,waktu,mulai:mulai||null,bangun:bangun||null,dur_min,ml,durasi,catatan};
+  const saved=await insertLog(entry);
+  btn.disabled=false;btn.textContent='💾 Simpan';
+  if(!saved)return;
+  logs.unshift(saved);
+  closePopup();
+  renderHomeLog();updateStats();updateNextFeed();renderGoals();
+  showToast('✓ Tersimpan'+(ml?' · '+ml+' ml':'')+(dur_min?' · '+formatDur(dur_min):''));
 }
 
 function closePopup(){document.getElementById('popup-overlay').classList.remove('open');}
 function closePopupIfOutside(e){if(e.target===document.getElementById('popup-overlay'))closePopup();}
-
-async function deleteFromPopup(id){
-  closePopup();
-  await deleteEntry(id);
-}
 
 async function deleteEntry(id){
   await deleteLogDB(id);
@@ -721,33 +692,19 @@ function logHTML(e){
   else if(e.durasi)parts.push(e.durasi+' menit');
   if(e.ml)parts.push(e.ml+' ml');
   if(e.catatan)parts.push(e.catatan);
-  return`<div class="log-item" data-id="${e.id}" onclick="openEditPopup(${e.id})" style="cursor:pointer;">
+  return`<div class="log-item">
     <div class="log-left"><div class="log-icon">${e.label.slice(0,2)}</div>
     <div><div class="log-type">${e.label.slice(2).trim()}</div>${parts.length?`<div class="log-detail">${parts.join(' · ')}</div>`:''}</div></div>
-    <div class="log-right"><div class="log-time">${e.waktu}</div><span style="font-size:14px;color:var(--text3);">✏️</span></div>
+    <div class="log-right"><div class="log-time">${e.waktu}</div><button class="log-del" onclick="deleteEntry(${e.id})">×</button></div>
   </div>`;
-}
-
-function openEditPopup(id){
-  const entry=logs.find(e=>e.id===id);
-  if(!entry)return;
-  openPopup(entry.type,entry);
 }
 
 function renderHomeLog(){
   const t=logs.filter(e=>e.date===todayStr()).sort((a,b)=>timeToMins(b.waktu)-timeToMins(a.waktu));
   document.getElementById('log-badge').textContent=t.length+' entri';
   const el=document.getElementById('home-log');
-  const more=document.getElementById('lihat-selengkapnya');
-  if(!t.length){
-    el.innerHTML='<div class="empty-state"><div class="ei">🌙</div><p>Belum ada catatan hari ini.<br>Tap tombol di atas untuk mulai.</p></div>';
-    document.getElementById('last-card').style.display='none';
-    more.style.display='none';
-    return;
-  }
-  const limit=8;
-  el.innerHTML=t.slice(0,limit).map(logHTML).join('');
-  more.style.display=t.length>limit?'block':'none';
+  if(!t.length){el.innerHTML='<div class="empty-state"><div class="ei">🌙</div><p>Belum ada catatan hari ini.<br>Tap tombol di atas untuk mulai.</p></div>';document.getElementById('last-card').style.display='none';return;}
+  el.innerHTML=t.slice(0,12).map(logHTML).join('');
   const l=t[0];
   document.getElementById('last-card').style.display='flex';
   document.getElementById('last-val').textContent=l.label;
@@ -758,14 +715,9 @@ function renderHomeLog(){
 
 function updateStats(){
   const t=logs.filter(e=>e.date===todayStr());
-  // DBF total durasi
-  const dbfLogs=t.filter(e=>e.type==='dbf');
-  const dbfMin=dbfLogs.reduce((s,e)=>s+(e.durasi||0),0);
-  document.getElementById('s-dbf').textContent=dbfMin>0?formatDur(dbfMin):'—';
-  // Total ml = botol + dbf (jika ada ml)
-  const mlBotol=t.filter(e=>e.type==='asip'||e.type==='formula').reduce((s,e)=>s+(e.ml||0),0);
-  const mlDbf=dbfLogs.reduce((s,e)=>s+(e.ml||0),0);
-  document.getElementById('s-ml').textContent=mlBotol+mlDbf;
+  const ml=t.filter(isMinum).reduce((s,e)=>s+(e.ml||0),0);
+  document.getElementById('s-minum').textContent=t.filter(isMinum).length;
+  document.getElementById('s-ml').textContent=ml;
   document.getElementById('s-popok').textContent=t.filter(isPopok).length;
 }
 
@@ -833,31 +785,13 @@ function getGoals(ageDays,weightGram){
 }
 
 function goalBarHTML(current,min,max,unit){
-  const pct=Math.min(Math.round(current/max*100),100);
-  let color,status='';
-  if(current===0)color='var(--surface2)';
-  else if(current<min){color='#e8b84a';status=' ⚠';}
-  else{color='#7fbf8e';}
-  return`<div class="goal-bar-bg"><div class="goal-bar-fill" style="width:${pct}%;background:${color};"></div></div>
+  const pct=Math.min(Math.round(current/max*100),120);
+  let cls='green',status='';
+  if(current===0)cls='';
+  else if(current<min){cls='yellow';status=' ⚠';}
+  else if(current>max){cls='over';status=' ↑';}
+  return`<div class="goal-bar-bg"><div class="goal-bar-fill ${cls}" style="width:${Math.min(pct,100)}%"></div></div>
     <div style="font-size:10px;color:var(--text3);margin-top:2px;">${current}${unit} / ${min}–${max}${unit}${status}</div>`;
-}
-
-function stackedBarHTML(mlBotol,mlDbf,min,max){
-  const total=mlBotol+mlDbf;
-  const pctBotol=Math.min(Math.round(mlBotol/max*100),100);
-  const pctDbf=Math.min(Math.round(mlDbf/max*100),100-pctBotol);
-  let botolColor,status='';
-  if(mlBotol===0)botolColor='transparent';
-  else if(total<min){botolColor='#e8b84a';status=' ⚠';}
-  else{botolColor='#7fbf8e';}
-  return`<div class="goal-bar-bg" style="display:flex;overflow:hidden;border-radius:4px;">
-    <div style="height:7px;width:${pctBotol}%;background:${botolColor};transition:width .6s;flex-shrink:0;"></div>
-    <div style="height:7px;width:${pctDbf}%;background:#7ab4d4;transition:width .6s;flex-shrink:0;"></div>
-  </div>
-  <div style="font-size:10px;color:var(--text3);margin-top:3px;display:flex;gap:10px;flex-wrap:wrap;">
-    <span>${total}ml / ${min}–${max}ml${status}</span>
-    ${mlDbf>0?`<span style="display:flex;align-items:center;gap:3px;"><span style="width:8px;height:8px;border-radius:50%;background:#7ab4d4;display:inline-block;"></span>DBF: ${mlDbf}ml</span>`:''}
-  </div>`;
 }
 
 function renderGoals(){
@@ -870,20 +804,20 @@ function renderGoals(){
   const latestBB=weights.length?weights[0].gram:null;
   const goals=getGoals(ageDays,latestBB);
   const t=logs.filter(e=>e.date===todayStr());
-  const mlBotol=t.filter(e=>e.type==='asip'||e.type==='formula').reduce((s,e)=>s+(e.ml||0),0);
-  const mlDbf=t.filter(e=>e.type==='dbf').reduce((s,e)=>s+(e.ml||0),0);
+  const totalMl=t.filter(isMinum).reduce((s,e)=>s+(e.ml||0),0);
   const totalBak=t.filter(e=>e.type==='bak').length+t.filter(e=>e.type==='babbak').length;
   const totalBab=t.filter(e=>e.type==='bab').length+t.filter(e=>e.type==='babbak').length;
   const totalSleepMin=t.filter(isTidur).reduce((s,e)=>s+(e.dur_min||0),0);
   const totalSleepH=Math.round(totalSleepMin/60*10)/10;
 
+  // age label
   const ageMonths=Math.floor(ageDays/30.44);
   const ageWeeks=Math.floor(ageDays/7);
   const ageRemDays=ageDays%7;
   let ageStr=ageMonths>0?ageMonths+' bln '+(ageWeeks%4)+' mgg':ageWeeks+' mgg '+ageRemDays+' hari';
   document.getElementById('goals-age-label').textContent=ageStr+(latestBB?' · '+latestBB+'g':'');
 
-  document.getElementById('goal-minum').innerHTML=`<div class="goal-row"><span class="goal-label">🍼 Susu + DBF</span></div>${stackedBarHTML(mlBotol,mlDbf,goals.ml.min,goals.ml.max)}`;
+  document.getElementById('goal-minum').innerHTML=`<div class="goal-row"><span class="goal-label">🍼 Susu</span></div>${goalBarHTML(totalMl,goals.ml.min,goals.ml.max,'ml')}`;
   document.getElementById('goal-bak').innerHTML=`<div class="goal-row"><span class="goal-label">💧 BAK</span></div>${goalBarHTML(totalBak,goals.bak.min,goals.bak.max,'×')}`;
   document.getElementById('goal-bab').innerHTML=`<div class="goal-row"><span class="goal-label">💩 BAB</span></div>${goalBarHTML(totalBab,goals.bab.min,goals.bab.max,'×')}`;
   document.getElementById('goal-tidur').innerHTML=`<div class="goal-row"><span class="goal-label">😴 Tidur</span></div>${goalBarHTML(totalSleepH,goals.sleep.min,goals.sleep.max,'j')}`;
