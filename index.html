@@ -811,12 +811,12 @@ function getGoals(ageDays,weightGram){
 }
 
 function goalBarHTML(current,min,max,unit){
-  const pct=Math.min(Math.round(current/max*100),120);
-  let cls='green',status='';
-  if(current===0)cls='';
-  else if(current<min){cls='yellow';status=' ⚠';}
-  else if(current>max){cls='over';status=' ↑';}
-  return`<div class="goal-bar-bg"><div class="goal-bar-fill ${cls}" style="width:${Math.min(pct,100)}%"></div></div>
+  const pct=Math.min(Math.round(current/max*100),100);
+  let color,status='';
+  if(current===0)color='var(--surface2)';
+  else if(current<min){color='#e8b84a';status=' ⚠';}
+  else{color='#7fbf8e';}
+  return`<div class="goal-bar-bg"><div class="goal-bar-fill" style="width:${pct}%;background:${color};border-radius:4px;"></div></div>
     <div style="font-size:10px;color:var(--text3);margin-top:2px;">${current}${unit} / ${min}–${max}${unit}${status}</div>`;
 }
 
@@ -824,14 +824,16 @@ function stackedBarHTML(mlBotol,mlDbf,min,max){
   const total=mlBotol+mlDbf;
   const pctBotol=Math.min(Math.round(mlBotol/max*100),100);
   const pctDbf=Math.min(Math.round(mlDbf/max*100),100-pctBotol);
-  let status='';
-  if(total>0&&total<min)status=' ⚠';
-  else if(total>max)status=' ↑';
+  // botol color based on total status, DBF always blue
+  let botolColor,status='';
+  if(total===0)botolColor='var(--surface2)';
+  else if(total<min){botolColor='#e8b84a';status=' ⚠';}
+  else{botolColor='#7fbf8e';}
   const r1=pctBotol>0?'4px 0 0 4px':'4px';
   const r2=pctBotol>0?'0 4px 4px 0':'4px';
   return`<div class="goal-bar-bg" style="display:flex;overflow:hidden;">
-    <div style="height:7px;width:${pctBotol}%;background:var(--green2);transition:width .6s;flex-shrink:0;border-radius:${r1};"></div>
-    <div style="height:7px;width:${pctDbf}%;background:#7ab4d4;transition:width .6s;flex-shrink:0;border-radius:${r2};"></div>
+    ${pctBotol>0?`<div style="height:7px;width:${pctBotol}%;background:${botolColor};transition:width .6s;flex-shrink:0;border-radius:${r1};"></div>`:''}
+    ${pctDbf>0?`<div style="height:7px;width:${pctDbf}%;background:#7ab4d4;transition:width .6s;flex-shrink:0;border-radius:${pctBotol>0?r2:'4px'};"></div>`:''}
   </div>
   <div style="font-size:10px;color:var(--text3);margin-top:3px;display:flex;gap:10px;flex-wrap:wrap;">
     <span>${total}ml / ${min}–${max}ml${status}</span>
