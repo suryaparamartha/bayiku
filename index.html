@@ -58,6 +58,7 @@ body{background:var(--bg);font-family:'DM Sans',sans-serif;color:var(--text);min
 header{background:var(--surface);border-bottom:1px solid var(--border);padding:.9rem 1.25rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200;}
 .logo{font-family:'Fraunces',serif;font-size:18px;color:var(--text);display:flex;align-items:center;gap:6px;}
 .logo em{color:var(--accent);font-style:italic;}
+.logo .logo-text{display:inline;letter-spacing:0;}
 .logo-baby{font-size:13px;color:var(--text2);font-family:'DM Sans',sans-serif;font-style:normal;}
 .header-right{display:flex;align-items:center;gap:6px;}
 .date-chip{font-size:11px;font-weight:500;color:var(--text2);background:var(--surface2);padding:4px 10px;border-radius:20px;}
@@ -273,7 +274,7 @@ textarea.form-input{resize:vertical;min-height:65px;}
 <!-- APP -->
 <div id="app-screen">
   <header>
-    <div class="logo">bayi<em>ku</em><span class="sync-dot" id="sync-dot"></span><span class="logo-baby" id="header-babyname"></span></div>
+    <div class="logo"><span>bayi<em>ku</em></span><span class="sync-dot" id="sync-dot"></span><span class="logo-baby" id="header-babyname"></span></div>
     <div class="header-right">
       <div class="date-chip" id="today-label"></div>
       <button class="icon-btn" onclick="toggleTheme()" id="theme-btn">🌙</button>
