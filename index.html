@@ -1134,24 +1134,66 @@ function renderRingkasan(){
     document.getElementById('r-avg-interval').textContent=formatDur(avgMin);
   } else document.getElementById('r-avg-interval').textContent='—';
 
-  // scatter
+  // line chart - X: jam, Y: ml
   const scatter=document.getElementById('feed-scatter');
   if(!minumToday.length){scatter.innerHTML='<p style="font-size:12px;color:var(--text2);padding:8px 0;">Belum ada data minum hari ini.</p>';}
   else{
-    const svgH=180,hours=[0,4,8,12,16,20,24];
-    const dots=minumToday.map(e=>{
-      const pct=timeToMins(e.waktu)/(24*60);
-      const y=10+pct*(svgH-20);
-      const col=e.type==='dbf'?'#7fbf8e':e.type==='asip'?'#7ab4d4':'#e8a06a';
-      return`<circle cx="50%" cy="${y}" r="6" fill="${col}" opacity="0.85"><title>${e.label.slice(2).trim()} ${e.waktu}${e.ml?' · '+e.ml+'ml':''}</title></circle>`;
+    const svgH=180, padL=36, padR=12, padT=10, padB=24;
+    const W=560; // viewBox width
+    const innerW=W-padL-padR, innerH=svgH-padT-padB;
+
+    // only entries with ml for the line chart
+    const withMl=minumToday.filter(e=>e.ml>0).sort((a,b)=>timeToMins(a.waktu)-timeToMins(b.waktu));
+    const allSorted=[...minumToday].sort((a,b)=>timeToMins(a.waktu)-timeToMins(b.waktu));
+
+    // Y axis: ml range
+    const maxMl=Math.max(...allSorted.map(e=>e.ml||0),50);
+    const yTicks=[0,Math.round(maxMl/2),maxMl];
+
+    // X axis: 0-24h
+    const xHours=[0,4,8,12,16,20,24];
+
+    function xPos(waktu){ return padL+Math.round(timeToMins(waktu)/(24*60)*innerW); }
+    function yPos(ml){ return padT+Math.round((1-(ml/maxMl))*innerH); }
+
+    // grid lines Y
+    const yGrid=yTicks.map(v=>{
+      const y=padT+Math.round((1-(v/maxMl))*innerH);
+      return`<line x1="${padL}" y1="${y}" x2="${W-padR}" y2="${y}" stroke="var(--border)" stroke-width="1"/>
+             <text x="${padL-4}" y="${y+3}" font-size="9" fill="var(--text3)" text-anchor="end">${v}</text>`;
     }).join('');
-    const lines=hours.map(h=>{const y=10+(h/24)*(svgH-20);return`<line x1="0" y1="${y}" x2="100%" y2="${y}" stroke="var(--border)" stroke-width="1"/><text x="4" y="${y+4}" font-size="9" fill="var(--text3)">${String(h).padStart(2,'0')}:00</text>`;}).join('');
-    scatter.innerHTML=`<svg width="100%" height="${svgH}" style="display:block;">${lines}${dots}</svg>
-      <div style="display:flex;gap:12px;margin-top:8px;flex-wrap:wrap;">
-        <span style="font-size:11px;color:var(--text2);display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:50%;background:#7ab4d4;display:inline-block;"></span>ASIP</span>
-        <span style="font-size:11px;color:var(--text2);display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:50%;background:#e8a06a;display:inline-block;"></span>Formula</span>
-        <span style="font-size:11px;color:var(--text2);display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:50%;background:#7fbf8e;display:inline-block;"></span>DBF</span>
-      </div>`;
+
+    // grid lines X
+    const xGrid=xHours.map(h=>{
+      const x=padL+Math.round(h/24*innerW);
+      return`<line x1="${x}" y1="${padT}" x2="${x}" y2="${padT+innerH}" stroke="var(--border)" stroke-width="1"/>
+             <text x="${x}" y="${padT+innerH+14}" font-size="9" fill="var(--text3)" text-anchor="middle">${String(h).padStart(2,'0')}:00</text>`;
+    }).join('');
+
+    // line connecting dots with ml
+    let linePath='';
+    if(withMl.length>=2){
+      const pts=withMl.map(e=>`${xPos(e.waktu)},${yPos(e.ml)}`).join(' ');
+      linePath=`<polyline points="${pts}" fill="none" stroke="var(--accent2)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+    }
+
+    // dots - all entries, ml=0 plotted at bottom
+    const dots=allSorted.map(e=>{
+      const x=xPos(e.waktu);
+      const y=e.ml>0?yPos(e.ml):padT+innerH;
+      const col=e.type==='dbf'?'#7fbf8e':e.type==='asip'?'#7ab4d4':'#e8a06a';
+      const label=`${e.label.slice(2).trim()} ${e.waktu}${e.ml?' · '+e.ml+'ml':''}`;
+      return`<circle cx="${x}" cy="${y}" r="5" fill="${col}" stroke="white" stroke-width="1.5" opacity="0.9"><title>${label}</title></circle>`;
+    }).join('');
+
+    scatter.innerHTML=`<svg width="100%" viewBox="0 0 ${W} ${svgH}" style="display:block;overflow:visible;">
+      ${yGrid}${xGrid}${linePath}${dots}
+    </svg>
+    <div style="display:flex;gap:12px;margin-top:8px;flex-wrap:wrap;">
+      <span style="font-size:11px;color:var(--text2);display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:50%;background:#7ab4d4;display:inline-block;"></span>ASIP</span>
+      <span style="font-size:11px;color:var(--text2);display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:50%;background:#e8a06a;display:inline-block;"></span>Formula</span>
+      <span style="font-size:11px;color:var(--text2);display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:50%;background:#7fbf8e;display:inline-block;"></span>DBF</span>
+    </div>`;
   }
 
   // sleep
