@@ -730,7 +730,7 @@ function renderHomeLog(){
   document.getElementById('log-badge').textContent=t.length+' entri';
   const el=document.getElementById('home-log');
   if(!t.length){el.innerHTML='<div class="empty-state"><div class="ei">🌙</div><p>Belum ada catatan hari ini.<br>Tap tombol di atas untuk mulai.</p></div>';document.getElementById('last-card').style.display='none';return;}
-  el.innerHTML=t.slice(0,12).map(logHTML).join('');
+  el.innerHTML=t.map(logHTML).join('');
   const l=t[0];
   document.getElementById('last-card').style.display='flex';
   document.getElementById('last-val').textContent=l.label;
