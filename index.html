@@ -916,13 +916,13 @@ function dayProgressHTML(d){
     if(current===0)color='var(--surface2)';
     else if(current<min)color='#e8b84a';
     else color='#7fbf8e';
-    const status=current>=min&&current<=max?'✓':current>max?'↑':'';
-    return`<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">
-      <span style="font-size:10px;color:var(--text2);width:60px;flex-shrink:0;">${label}</span>
+    const status=current>=min&&current<=max?' ✓':current>max?' ↑':'';
+    return`<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+      <span style="font-size:11px;color:var(--text2);width:64px;flex-shrink:0;">${label}</span>
       <div style="flex:1;height:5px;background:var(--surface2);border-radius:3px;overflow:hidden;">
         <div style="height:100%;width:${pct}%;background:${color};border-radius:3px;"></div>
       </div>
-      <span style="font-size:10px;color:var(--text3);width:60px;flex-shrink:0;text-align:right;">${current}${unit}/${min}–${max}${unit} ${status}</span>
+      <span style="font-size:10px;color:var(--text3);width:90px;flex-shrink:0;text-align:right;white-space:nowrap;">${current}${unit} / ${min}–${max}${unit}${status}</span>
     </div>`;
   }
 
@@ -934,14 +934,14 @@ function dayProgressHTML(d){
     if(total===0)botolColor='var(--surface2)';
     else if(total<min)botolColor='#e8b84a';
     else botolColor='#7fbf8e';
-    const status=total>=min&&total<=max?'✓':total>max?'↑':'';
-    return`<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">
-      <span style="font-size:10px;color:var(--text2);width:60px;flex-shrink:0;">🍼 Susu</span>
+    const status=total>=min&&total<=max?' ✓':total>max?' ↑':'';
+    return`<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+      <span style="font-size:11px;color:var(--text2);width:64px;flex-shrink:0;">🍼 Susu</span>
       <div style="flex:1;height:5px;background:var(--surface2);border-radius:3px;overflow:hidden;display:flex;">
         <div style="height:100%;width:${pctB}%;background:${botolColor};flex-shrink:0;"></div>
         <div style="height:100%;width:${pctD}%;background:#7ab4d4;flex-shrink:0;"></div>
       </div>
-      <span style="font-size:10px;color:var(--text3);width:60px;flex-shrink:0;text-align:right;">${total}ml/${goals.ml.min}–${goals.ml.max}ml ${status}</span>
+      <span style="font-size:10px;color:var(--text3);width:90px;flex-shrink:0;text-align:right;white-space:nowrap;">${total}ml / ${min}–${max}ml${status}</span>
     </div>`;
   }
 
