@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>bayiku</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>👶</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,500;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -272,7 +273,7 @@ textarea.form-input{resize:vertical;min-height:65px;}
 <!-- APP -->
 <div id="app-screen">
   <header>
-    <div class="logo">bayi<em>ku</em> <span class="sync-dot" id="sync-dot"></span><span class="logo-baby" id="header-babyname"></span></div>
+    <div class="logo">bayi<em>ku</em><span class="sync-dot" id="sync-dot"></span><span class="logo-baby" id="header-babyname"></span></div>
     <div class="header-right">
       <div class="date-chip" id="today-label"></div>
       <button class="icon-btn" onclick="toggleTheme()" id="theme-btn">🌙</button>
@@ -1151,7 +1152,7 @@ function renderRingkasan(){
     const yTicks=[0,Math.round(maxMl/2),maxMl];
 
     // X axis: 0-24h
-    const xHours=[0,4,8,12,16,20,24];
+    const xHours=[0,2,4,6,8,10,12,14,16,18,20,22,24];
 
     function xPos(waktu){ return padL+Math.round(timeToMins(waktu)/(24*60)*innerW); }
     function yPos(ml){ return padT+Math.round((1-(ml/maxMl))*innerH); }
