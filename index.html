@@ -307,7 +307,21 @@ textarea.form-input{resize:vertical;min-height:65px;}
 
       <!-- DAILY GOALS -->
       <div id="goals-card" class="goals-card" style="display:none;">
-        <div class="goals-title">📊 Referensi Harian <span class="goals-subtitle" id="goals-age-label"></span></div>
+        <div class="goals-title">
+          <div style="display:flex;align-items:center;gap:6px;">
+            📊 Referensi Target Harian
+            <button onclick="toggleGoalsInfo()" style="width:18px;height:18px;border-radius:50%;background:var(--surface2);border:1px solid var(--border);font-size:11px;font-weight:700;color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;line-height:1;padding:0;">?</button>
+          </div>
+          <span class="goals-subtitle" id="goals-age-label"></span>
+        </div>
+        <div id="goals-info" style="display:none;background:var(--surface2);border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:11px;color:var(--text2);line-height:1.7;">
+          Angka target harian diambil dari panduan medis internasional:<br>
+          <strong style="color:var(--text);">🍼 Susu</strong> — AAP (American Academy of Pediatrics): 90–180 ml/kg/hari tergantung usia, maks 960 ml/hari.<br>
+          <strong style="color:var(--text);">💧 BAK</strong> — AAP: minimal 6–8× per hari setelah hari ke-5.<br>
+          <strong style="color:var(--text);">💩 BAB</strong> — AAP: 3–10× (0–6 minggu), 1–4× (6 mgg–3 bln), 1–3× (3–12 bln).<br>
+          <strong style="color:var(--text);">😴 Tidur</strong> — AASM (American Academy of Sleep Medicine): 14–17j (0–3 bln), 12–16j (4–11 bln).<br>
+          <span style="color:var(--text3);font-size:10px;">Angka ini bersifat referensi umum. Konsultasikan dengan dokter anak untuk panduan spesifik bayimu.</span>
+        </div>
         <div id="goal-minum" class="goal-item"></div>
         <div id="goal-bak" class="goal-item"></div>
         <div id="goal-bab" class="goal-item"></div>
@@ -852,6 +866,11 @@ function stackedBarHTML(mlBotol,mlDbf,min,max){
     <span>${total}ml / ${min}–${max}ml${status}</span>
     ${mlDbf>0?`<span style="display:flex;align-items:center;gap:3px;"><span style="width:8px;height:8px;border-radius:50%;background:#7ab4d4;display:inline-block;"></span>DBF: ${mlDbf}ml</span>`:''}
   </div>`;
+}
+
+function toggleGoalsInfo(){
+  const el=document.getElementById('goals-info');
+  el.style.display=el.style.display==='none'?'block':'none';
 }
 
 function renderGoals(){
