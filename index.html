@@ -334,6 +334,12 @@ textarea.form-input{resize:vertical;min-height:65px;}
         <div class="card-hdr"><div class="card-title">📋 Log Hari Ini</div><div class="card-badge" id="log-badge">0 entri</div></div>
         <div id="home-log" class="log-list"><div class="empty-state"><div class="ei">🌙</div><p>Belum ada catatan hari ini.<br>Tap tombol di atas untuk mulai.</p></div></div>
       </div>
+      <div style="text-align:center;padding:0.5rem 0 1rem;">
+        <button onclick="window.scrollTo({top:0,behavior:'smooth'})" style="display:inline-flex;align-items:center;gap:6px;background:none;border:1px solid var(--border);border-radius:20px;padding:7px 16px;font-size:12px;font-weight:500;color:var(--text2);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text2)'">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="16 12 12 8 8 12"/><line x1="12" y1="16" x2="12" y2="8"/></svg>
+          Kembali ke atas
+        </button>
+      </div>
     </div>
 
     <!-- RIWAYAT -->
@@ -374,8 +380,8 @@ textarea.form-input{resize:vertical;min-height:65px;}
       <p class="section-title">Ringkasan</p>
       <div class="insight-tabs">
         <button class="itab active" onclick="showInsight('feeding',this)">🍼 Minum</button>
-        <button class="itab" onclick="showInsight('sleep',this)">😴 Tidur</button>
         <button class="itab" onclick="showInsight('diaper',this)">💩 Popok</button>
+        <button class="itab" onclick="showInsight('sleep',this)">😴 Tidur</button>
       </div>
       <div class="insight-section active" id="insight-feeding">
         <div class="stat2-grid">
