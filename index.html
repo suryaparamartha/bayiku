@@ -891,6 +891,68 @@ function filterLog(f,btn){
   renderFullLog(f);
 }
 
+function dayProgressHTML(d){
+  if(!babyProfile?.tgl_lahir)return'';
+  // calculate age at that date
+  const born=new Date(babyProfile.tgl_lahir+'T00:00:00');
+  const dateD=new Date(d+'T12:00:00');
+  const ageDays=Math.floor((dateD-born)/(1000*60*60*24));
+  if(ageDays<0)return'';
+  const latestBB=weights.length?weights[0].gram:null;
+  const goals=getGoals(ageDays,latestBB);
+  // get ALL logs for that date (not filtered)
+  const t=logs.filter(e=>e.date===d);
+  const mlBotol=t.filter(e=>e.type==='asip'||e.type==='formula').reduce((s,e)=>s+(e.ml||0),0);
+  const mlDbf=t.filter(e=>e.type==='dbf').reduce((s,e)=>s+(e.ml||0),0);
+  const totalMl=mlBotol+mlDbf;
+  const totalBak=t.filter(e=>e.type==='bak').length+t.filter(e=>e.type==='babbak').length;
+  const totalBab=t.filter(e=>e.type==='bab').length+t.filter(e=>e.type==='babbak').length;
+  const totalSleepMin=t.filter(isTidur).reduce((s,e)=>s+(e.dur_min||0),0);
+  const totalSleepH=Math.round(totalSleepMin/60*10)/10;
+
+  function miniBar(current,min,max,label,unit,isDbf=false){
+    const pct=Math.min(Math.round(current/max*100),100);
+    let color;
+    if(current===0)color='var(--surface2)';
+    else if(current<min)color='#e8b84a';
+    else color='#7fbf8e';
+    const status=current>=min&&current<=max?'✓':current>max?'↑':'';
+    return`<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">
+      <span style="font-size:10px;color:var(--text2);width:60px;flex-shrink:0;">${label}</span>
+      <div style="flex:1;height:5px;background:var(--surface2);border-radius:3px;overflow:hidden;">
+        <div style="height:100%;width:${pct}%;background:${color};border-radius:3px;"></div>
+      </div>
+      <span style="font-size:10px;color:var(--text3);width:60px;flex-shrink:0;text-align:right;">${current}${unit}/${min}–${max}${unit} ${status}</span>
+    </div>`;
+  }
+
+  function miniStackedBar(mlB,mlD,min,max){
+    const total=mlB+mlD;
+    const pctB=Math.min(Math.round(mlB/max*100),100);
+    const pctD=Math.min(Math.round(mlD/max*100),100-pctB);
+    let botolColor;
+    if(total===0)botolColor='var(--surface2)';
+    else if(total<min)botolColor='#e8b84a';
+    else botolColor='#7fbf8e';
+    const status=total>=min&&total<=max?'✓':total>max?'↑':'';
+    return`<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">
+      <span style="font-size:10px;color:var(--text2);width:60px;flex-shrink:0;">🍼 Susu</span>
+      <div style="flex:1;height:5px;background:var(--surface2);border-radius:3px;overflow:hidden;display:flex;">
+        <div style="height:100%;width:${pctB}%;background:${botolColor};flex-shrink:0;"></div>
+        <div style="height:100%;width:${pctD}%;background:#7ab4d4;flex-shrink:0;"></div>
+      </div>
+      <span style="font-size:10px;color:var(--text3);width:60px;flex-shrink:0;text-align:right;">${total}ml/${goals.ml.min}–${goals.ml.max}ml ${status}</span>
+    </div>`;
+  }
+
+  return`<div style="padding:8px 10px 4px;border-bottom:1px solid var(--border);">
+    ${miniStackedBar(mlBotol,mlDbf,goals.ml.min,goals.ml.max)}
+    ${miniBar(totalBak,goals.bak.min,goals.bak.max,'💧 BAK','×')}
+    ${miniBar(totalBab,goals.bab.min,goals.bab.max,'💩 BAB','×')}
+    ${miniBar(totalSleepH,goals.sleep.min,goals.sleep.max,'😴 Tidur','j')}
+  </div>`;
+}
+
 function renderFullLog(f){
   let data=[...logs];
   if(f==='minum')data=data.filter(isMinum);
@@ -909,7 +971,7 @@ function renderFullLog(f){
         <div class="day-header-left"><span class="day-label">${dayLabel(d)}</span><span class="day-count">${items.length} entri</span></div>
         <span class="day-chevron">▾</span>
       </div>
-      <div class="day-body">${items.map(logHTML).join('')}</div>
+      <div class="day-body">${dayProgressHTML(d)}${items.map(logHTML).join('')}</div>
     </div>`;
   }).join('');
 }
