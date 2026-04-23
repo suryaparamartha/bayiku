@@ -324,7 +324,7 @@ textarea.form-input{resize:vertical;min-height:65px;}
         <button class="action-btn" onclick="openPopup('vitamin')"><div class="ab-icon">💊</div><div class="ab-label">Vitamin</div></button>
       </div>
       <div class="stats-row">
-        <div class="stat-box"><div class="stat-num" id="s-minum">0</div><div class="stat-lbl">Minum hari ini</div></div>
+        <div class="stat-box"><div class="stat-num" id="s-dbf">—</div><div class="stat-lbl">DBF hari ini</div></div>
         <div class="stat-box"><div class="stat-num" id="s-ml">0</div><div class="stat-lbl">Total ml</div></div>
         <div class="stat-box"><div class="stat-num" id="s-popok">0</div><div class="stat-lbl">Ganti popok</div></div>
       </div>
@@ -741,9 +741,14 @@ function renderHomeLog(){
 
 function updateStats(){
   const t=logs.filter(e=>e.date===todayStr());
-  const ml=t.filter(isMinum).reduce((s,e)=>s+(e.ml||0),0);
-  document.getElementById('s-minum').textContent=t.filter(isMinum).length;
-  document.getElementById('s-ml').textContent=ml;
+  // DBF: total durasi hari ini
+  const dbfLogs=t.filter(e=>e.type==='dbf');
+  const dbfMin=dbfLogs.reduce((s,e)=>s+(e.durasi||0),0);
+  document.getElementById('s-dbf').textContent=dbfMin>0?formatDur(dbfMin):'—';
+  // Total ml: susu botol + DBF (jika ada ml)
+  const mlBotol=t.filter(e=>e.type==='asip'||e.type==='formula').reduce((s,e)=>s+(e.ml||0),0);
+  const mlDbf=dbfLogs.reduce((s,e)=>s+(e.ml||0),0);
+  document.getElementById('s-ml').textContent=mlBotol+mlDbf;
   document.getElementById('s-popok').textContent=t.filter(isPopok).length;
 }
 
