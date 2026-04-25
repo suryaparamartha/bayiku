@@ -471,6 +471,32 @@ textarea.form-input{resize:vertical;min-height:65px;}
   </div>
 </div>
 
+<!-- NOTE EDIT POPUP -->
+<div class="popup-overlay" id="note-popup-overlay" onclick="closeNotePopupIfOutside(event)">
+  <div class="popup-sheet">
+    <div class="popup-handle"></div>
+    <div class="popup-title">✏️ Edit Catatan<button class="popup-close" onclick="closeNotePopup()">Tutup</button></div>
+    <div class="form-grid">
+      <div class="form-field">
+        <div class="form-label">Kategori</div>
+        <select class="form-input" id="np-kat">
+          <option>💡 Umum</option><option>🩺 Kesehatan</option>
+          <option>😊 Perkembangan</option><option>📝 Pengingat</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <div class="form-label">Tanggal</div>
+        <input type="date" class="form-input" id="np-tgl">
+      </div>
+      <div class="form-field full">
+        <div class="form-label">Isi catatan</div>
+        <textarea class="form-input" id="np-isi" style="min-height:100px;"></textarea>
+      </div>
+    </div>
+    <button class="popup-save" onclick="saveNoteEdit()">💾 Simpan Perubahan</button>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -1026,15 +1052,34 @@ function openNoteEditPopup(id){
   const note=notes.find(n=>n.id===id);
   if(!note)return;
   editingNoteId=id;
-  document.getElementById('note-kat').value=note.kat;
-  document.getElementById('note-tgl').value=note.tgl;
-  document.getElementById('note-isi').value=note.isi;
-  // scroll to form
-  document.getElementById('section-catatan').scrollIntoView({behavior:'smooth'});
-  document.querySelector('.note-form').style.outline='2px solid var(--accent)';
-  document.querySelector('.note-form').style.borderRadius='16px';
-  document.getElementById('note-isi').focus();
-  document.querySelector('.popup-save[onclick="saveNote()"]').textContent='💾 Simpan Perubahan';
+  document.getElementById('np-kat').value=note.kat;
+  document.getElementById('np-tgl').value=note.tgl;
+  document.getElementById('np-isi').value=note.isi;
+  document.getElementById('note-popup-overlay').classList.add('open');
+}
+
+function closeNotePopup(){
+  editingNoteId=null;
+  document.getElementById('note-popup-overlay').classList.remove('open');
+}
+
+function closeNotePopupIfOutside(e){
+  if(e.target===document.getElementById('note-popup-overlay'))closeNotePopup();
+}
+
+async function saveNoteEdit(){
+  const isi=document.getElementById('np-isi').value.trim();
+  if(!isi){showToast('Isi catatan kosong');return;}
+  const kat=document.getElementById('np-kat').value;
+  const tgl=document.getElementById('np-tgl').value;
+  setSyncStatus('syncing');
+  const{error}=await sb.from('notes').update({kat,isi,tgl}).eq('id',editingNoteId).eq('user_id',currentUser.id);
+  if(error){setSyncStatus('error');showToast('⚠ Gagal simpan');return;}
+  setSyncStatus('ok');
+  const idx=notes.findIndex(n=>n.id===editingNoteId);
+  if(idx!==-1)notes[idx]={...notes[idx],kat,isi,tgl};
+  closeNotePopup();
+  renderNotes();showToast('✓ Catatan diperbarui');
 }
 
 function cancelNoteEdit(){
@@ -1048,26 +1093,12 @@ function cancelNoteEdit(){
 async function saveNote(){
   const isi=document.getElementById('note-isi').value.trim();
   if(!isi){showToast('Isi catatan kosong');return;}
-  const kat=document.getElementById('note-kat').value;
-  const tgl=document.getElementById('note-tgl').value;
-
-  if(editingNoteId){
-    setSyncStatus('syncing');
-    const{error}=await sb.from('notes').update({kat,isi,tgl}).eq('id',editingNoteId).eq('user_id',currentUser.id);
-    if(error){setSyncStatus('error');showToast('⚠ Gagal simpan');return;}
-    setSyncStatus('ok');
-    const idx=notes.findIndex(n=>n.id===editingNoteId);
-    if(idx!==-1)notes[idx]={...notes[idx],kat,isi,tgl};
-    cancelNoteEdit();
-    renderNotes();showToast('✓ Catatan diperbarui');
-  } else {
-    const entry={id:Date.now(),kat,isi,tgl,ts:Date.now()};
-    const saved=await insertNote(entry);
-    if(!saved)return;
-    notes.unshift(saved);
-    document.getElementById('note-isi').value='';
-    renderNotes();showToast('✓ Catatan tersimpan');
-  }
+  const entry={id:Date.now(),kat:document.getElementById('note-kat').value,isi,tgl:document.getElementById('note-tgl').value,ts:Date.now()};
+  const saved=await insertNote(entry);
+  if(!saved)return;
+  notes.unshift(saved);
+  document.getElementById('note-isi').value='';
+  renderNotes();showToast('✓ Catatan tersimpan');
 }
 
 async function deleteNote(id){
@@ -1095,10 +1126,7 @@ function renderNotes(){
       <div class="day-body">${items.map(n=>`<div class="note-item" style="cursor:pointer;" onclick="openNoteEditPopup(${n.id})">
         <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
           <span class="note-cat" style="background:${cc[n.kat]||'#f3f4f6'};color:#3D2B1F;">${n.kat}</span>
-          <div style="display:flex;align-items:center;gap:6px;">
-            <span style="font-size:13px;color:var(--text3);">✏️</span>
-            <button class="note-del" onclick="event.stopPropagation();deleteNote(${n.id})">×</button>
-          </div>
+          <button class="note-del" onclick="event.stopPropagation();deleteNote(${n.id})">×</button>
         </div>
         <div class="note-meta"><span>${new Date(n.ts).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'})}</span></div>
         <div class="note-text">${n.isi}</div>
