@@ -652,8 +652,13 @@ function openPopup(type,editEntry=null){
   document.getElementById('popup-title').innerHTML=(isEdit?'✏️ Edit — ':'')+cfg.label+'<button class="popup-close" onclick="closePopup()">Tutup</button>';
   const f=cfg.fields;
   let html='<div class="form-grid">';
-  if(f.includes('waktu'))html+=`<div class="form-field"><div class="form-label">Waktu</div><input type="time" class="form-input" id="p-waktu" value="${isEdit?editEntry.waktu:nowStr()}"></div>`;
+  if(f.includes('waktu')){
+    html+=`<div class="form-field"><div class="form-label">Tanggal</div><input type="date" class="form-input" id="p-date" value="${isEdit?editEntry.date:todayStr()}"></div>`;
+    html+=`<div class="form-field"><div class="form-label">Waktu</div><input type="time" class="form-input" id="p-waktu" value="${isEdit?editEntry.waktu:nowStr()}"></div>`;
+  }
   if(f.includes('waktu_mulai')){
+    html+=`<div class="form-field"><div class="form-label">Tanggal</div><input type="date" class="form-input" id="p-date" value="${isEdit?editEntry.date:todayStr()}"></div>`;
+    html+=`<div class="form-field full"></div>`;
     html+=`<div class="form-field"><div class="form-label">Waktu mulai tidur</div><input type="time" class="form-input" id="p-mulai" value="${isEdit&&editEntry.mulai?editEntry.mulai:nowStr()}" oninput="calcDur()"></div>`;
     html+=`<div class="form-field"><div class="form-label">Waktu bangun</div><input type="time" class="form-input" id="p-bangun" value="${isEdit&&editEntry.bangun?editEntry.bangun:nowStr()}" oninput="calcDur()"></div>`;
     html+=`<div class="form-field full"><div class="dur-calc" id="dur-calc"></div></div>`;
@@ -685,14 +690,17 @@ async function savePopup(){
   const btn=document.getElementById('popup-save-btn');
   btn.disabled=true;btn.textContent='Menyimpan...';
   let waktu='',mulai='',bangun='',ml=null,durasi=null,catatan='',dur_min=null,date=todayStr();
-  if(f.includes('waktu'))waktu=document.getElementById('p-waktu')?.value||nowStr();
+  if(f.includes('waktu')){
+    date=document.getElementById('p-date')?.value||todayStr();
+    waktu=document.getElementById('p-waktu')?.value||nowStr();
+  }
   if(f.includes('waktu_mulai')){
+    date=document.getElementById('p-date')?.value||todayStr();
     mulai=document.getElementById('p-mulai')?.value||nowStr();
     bangun=document.getElementById('p-bangun')?.value||nowStr();
     waktu=mulai;
     dur_min=timeToMins(bangun)-timeToMins(mulai);
     if(dur_min<0)dur_min+=24*60;
-    date=todayStr();
   }
   if(f.includes('ml'))ml=parseInt(document.getElementById('p-ml')?.value)||null;
   if(f.includes('ml_dbf'))ml=parseInt(document.getElementById('p-ml-dbf')?.value)||null;
@@ -1004,19 +1012,6 @@ function renderFullLog(f){
 }
 
 // ── NOTES ──
-async function saveNote(){
-  const isi=document.getElementById('note-isi').value.trim();
-  if(!isi){showToast('Isi catatan kosong');return;}
-  const entry={id:Date.now(),kat:document.getElementById('note-kat').value,isi,tgl:document.getElementById('note-tgl').value,ts:Date.now()};
-  const saved=await insertNote(entry);
-  if(!saved)return;
-  notes.unshift(saved);
-  document.getElementById('note-isi').value='';
-  renderNotes();showToast('✓ Catatan tersimpan');
-}
-async function deleteNote(id){
-  await deleteNoteDB(id);notes=notes.filter(n=>n.id!==id);renderNotes();
-}
 let notesCollapsedState=false;
 function toggleNoteCollapseAll(){
   notesCollapsedState=!notesCollapsedState;
@@ -1024,6 +1019,63 @@ function toggleNoteCollapseAll(){
   document.getElementById('note-collapse-btn').textContent=notesCollapsedState?'Expand Semua':'Collapse Semua';
 }
 function toggleNoteSection(id){document.getElementById(id)?.classList.toggle('collapsed');}
+
+let editingNoteId=null;
+
+function openNoteEditPopup(id){
+  const note=notes.find(n=>n.id===id);
+  if(!note)return;
+  editingNoteId=id;
+  document.getElementById('note-kat').value=note.kat;
+  document.getElementById('note-tgl').value=note.tgl;
+  document.getElementById('note-isi').value=note.isi;
+  // scroll to form
+  document.getElementById('section-catatan').scrollIntoView({behavior:'smooth'});
+  document.querySelector('.note-form').style.outline='2px solid var(--accent)';
+  document.querySelector('.note-form').style.borderRadius='16px';
+  document.getElementById('note-isi').focus();
+  document.querySelector('.popup-save[onclick="saveNote()"]').textContent='💾 Simpan Perubahan';
+}
+
+function cancelNoteEdit(){
+  editingNoteId=null;
+  document.getElementById('note-isi').value='';
+  document.getElementById('note-tgl').value=todayStr();
+  document.querySelector('.note-form').style.outline='none';
+  document.querySelector('.popup-save[onclick="saveNote()"]').textContent='💾 Simpan Catatan';
+}
+
+async function saveNote(){
+  const isi=document.getElementById('note-isi').value.trim();
+  if(!isi){showToast('Isi catatan kosong');return;}
+  const kat=document.getElementById('note-kat').value;
+  const tgl=document.getElementById('note-tgl').value;
+
+  if(editingNoteId){
+    setSyncStatus('syncing');
+    const{error}=await sb.from('notes').update({kat,isi,tgl}).eq('id',editingNoteId).eq('user_id',currentUser.id);
+    if(error){setSyncStatus('error');showToast('⚠ Gagal simpan');return;}
+    setSyncStatus('ok');
+    const idx=notes.findIndex(n=>n.id===editingNoteId);
+    if(idx!==-1)notes[idx]={...notes[idx],kat,isi,tgl};
+    cancelNoteEdit();
+    renderNotes();showToast('✓ Catatan diperbarui');
+  } else {
+    const entry={id:Date.now(),kat,isi,tgl,ts:Date.now()};
+    const saved=await insertNote(entry);
+    if(!saved)return;
+    notes.unshift(saved);
+    document.getElementById('note-isi').value='';
+    renderNotes();showToast('✓ Catatan tersimpan');
+  }
+}
+
+async function deleteNote(id){
+  await deleteNoteDB(id);
+  notes=notes.filter(n=>n.id!==id);
+  if(editingNoteId===id)cancelNoteEdit();
+  renderNotes();
+}
 
 function renderNotes(){
   const el=document.getElementById('notes-list');
@@ -1040,10 +1092,13 @@ function renderNotes(){
         <div class="day-header-left"><span class="day-label">${dayLabel(d)}</span><span class="day-count">${items.length} catatan</span></div>
         <span class="day-chevron">▾</span>
       </div>
-      <div class="day-body">${items.map(n=>`<div class="note-item">
+      <div class="day-body">${items.map(n=>`<div class="note-item" style="cursor:pointer;" onclick="openNoteEditPopup(${n.id})">
         <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
           <span class="note-cat" style="background:${cc[n.kat]||'#f3f4f6'};color:#3D2B1F;">${n.kat}</span>
-          <button class="note-del" onclick="deleteNote(${n.id})">×</button>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span style="font-size:13px;color:var(--text3);">✏️</span>
+            <button class="note-del" onclick="event.stopPropagation();deleteNote(${n.id})">×</button>
+          </div>
         </div>
         <div class="note-meta"><span>${new Date(n.ts).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'})}</span></div>
         <div class="note-text">${n.isi}</div>
