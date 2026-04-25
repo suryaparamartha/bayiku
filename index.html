@@ -365,7 +365,13 @@ textarea.form-input{resize:vertical;min-height:65px;}
         <button class="filter-btn" onclick="filterLog('popok',this)">Popok</button>
         <button class="filter-btn" onclick="filterLog('tidur',this)">Tidur</button>
       </div>
-      <div class="log-toolbar"><button class="collapse-all-btn" id="collapse-all-btn" onclick="toggleCollapseAll()">Collapse Semua</button></div>
+      <div class="log-toolbar" style="justify-content:space-between;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <input type="date" id="log-date-filter" class="form-input" style="padding:4px 8px;font-size:12px;width:auto;" oninput="applyLogDateFilter()">
+          <button class="collapse-all-btn" id="log-date-clear" onclick="clearLogDateFilter()" style="display:none;">✕ Hapus filter</button>
+        </div>
+        <button class="collapse-all-btn" id="collapse-all-btn" onclick="toggleCollapseAll()">Collapse Semua</button>
+      </div>
       <div id="full-log"><div class="empty-state"><div class="ei">📋</div><p>Belum ada riwayat.</p></div></div>
     </div>
 
@@ -385,7 +391,13 @@ textarea.form-input{resize:vertical;min-height:65px;}
         </div>
         <button class="popup-save" onclick="saveNote()">💾 Simpan Catatan</button>
       </div>
-      <div class="log-toolbar"><button class="collapse-all-btn" id="note-collapse-btn" onclick="toggleNoteCollapseAll()">Collapse Semua</button></div>
+      <div class="log-toolbar" style="justify-content:space-between;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <input type="date" id="note-date-filter" class="form-input" style="padding:4px 8px;font-size:12px;width:auto;" oninput="applyNoteDateFilter()">
+          <button class="collapse-all-btn" id="note-date-clear" onclick="clearNoteDateFilter()" style="display:none;">✕ Hapus filter</button>
+        </div>
+        <button class="collapse-all-btn" id="note-collapse-btn" onclick="toggleNoteCollapseAll()">Collapse Semua</button>
+      </div>
       <div id="notes-list"></div>
     </div>
 
@@ -938,6 +950,33 @@ function renderGoals(){
 }
 
 // ── LOG / FILTER ──
+let logDateFilter=null;
+let noteDateFilter=null;
+
+function applyLogDateFilter(){
+  logDateFilter=document.getElementById('log-date-filter').value||null;
+  document.getElementById('log-date-clear').style.display=logDateFilter?'inline-block':'none';
+  renderFullLog(currentFilter);
+}
+function clearLogDateFilter(){
+  logDateFilter=null;
+  document.getElementById('log-date-filter').value='';
+  document.getElementById('log-date-clear').style.display='none';
+  renderFullLog(currentFilter);
+}
+
+function applyNoteDateFilter(){
+  noteDateFilter=document.getElementById('note-date-filter').value||null;
+  document.getElementById('note-date-clear').style.display=noteDateFilter?'inline-block':'none';
+  renderNotes();
+}
+function clearNoteDateFilter(){
+  noteDateFilter=null;
+  document.getElementById('note-date-filter').value='';
+  document.getElementById('note-date-clear').style.display='none';
+  renderNotes();
+}
+
 function toggleCollapseAll(){
   allCollapsed=!allCollapsed;
   document.querySelectorAll('#full-log .day-section').forEach(s=>s.classList.toggle('collapsed',allCollapsed));
@@ -1019,6 +1058,7 @@ function renderFullLog(f){
   if(f==='minum')data=data.filter(isMinum);
   else if(f==='popok')data=data.filter(isPopok);
   else if(f==='tidur')data=data.filter(isTidur);
+  if(logDateFilter)data=data.filter(e=>e.date===logDateFilter);
   const el=document.getElementById('full-log');
   if(!data.length){el.innerHTML='<div class="empty-state"><div class="ei">📋</div><p>Tidak ada entri.</p></div>';return;}
   const groups={};
@@ -1113,7 +1153,9 @@ function renderNotes(){
   if(!notes.length){el.innerHTML='<div class="empty-state"><div class="ei">📓</div><p>Belum ada catatan.</p></div>';return;}
   const cc={'💡 Umum':'#FDF3DC','🩺 Kesehatan':'#F3E8FF','😊 Perkembangan':'#DCFCE7','📝 Pengingat':'#FFE4E6'};
   const groups={};
-  notes.forEach(n=>{if(!groups[n.tgl])groups[n.tgl]=[];groups[n.tgl].push(n);});
+  const filtered=noteDateFilter?notes.filter(n=>n.tgl===noteDateFilter):notes;
+  if(!filtered.length){el.innerHTML='<div class="empty-state"><div class="ei">📓</div><p>Tidak ada catatan pada tanggal ini.</p></div>';return;}
+  filtered.forEach(n=>{if(!groups[n.tgl])groups[n.tgl]=[];groups[n.tgl].push(n);});
   const sortedDates=Object.keys(groups).sort((a,b)=>b.localeCompare(a));
   el.innerHTML=sortedDates.map(d=>{
     const items=groups[d];
