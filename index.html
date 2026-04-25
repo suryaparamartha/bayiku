@@ -446,6 +446,7 @@ textarea.form-input{resize:vertical;min-height:65px;}
         <div class="profile-row"><span class="profile-key">Jenis kelamin</span><span class="profile-val" id="profil-jk-display">—</span></div>
         <div class="profile-row"><span class="profile-key">Tanggal lahir</span><span class="profile-val" id="profil-tgl-display">—</span></div>
         <div class="profile-row"><span class="profile-key">Berat terbaru</span><span class="profile-val" id="profil-bb-display">—</span></div>
+        <div class="profile-row"><span class="profile-key">Tinggi terbaru</span><span class="profile-val" id="profil-tb-display">—</span></div>
         <div style="margin-top:10px;"><button class="popup-save" onclick="showProfilForm()">✏️ Edit Profil</button></div>
       </div>
 
@@ -460,14 +461,28 @@ textarea.form-input{resize:vertical;min-height:65px;}
         <button class="popup-save" onclick="saveProfil()">💾 Simpan Profil</button>
       </div>
 
-      <!-- BERAT BADAN -->
+      <!-- BERAT & TINGGI BADAN -->
       <div class="card" style="margin-top:12px;">
-        <div class="card-hdr"><div class="card-title">⚖️ Riwayat Berat Badan</div></div>
+        <div class="card-hdr"><div class="card-title">📏 Riwayat Pertumbuhan</div></div>
         <div class="form-grid" style="margin-bottom:10px;">
+          <div class="form-field"><div class="form-label">Tanggal ukur</div><input type="date" class="form-input" id="bb-tgl"></div>
           <div class="form-field"><div class="form-label">Berat (gram)</div><input type="number" class="form-input" id="bb-gram" placeholder="misal: 3500" min="500" max="20000"></div>
-          <div class="form-field"><div class="form-label">Tanggal timbang</div><input type="date" class="form-input" id="bb-tgl"></div>
+          <div class="form-field"><div class="form-label">Tinggi/Panjang (cm)</div><input type="number" class="form-input" id="bb-tinggi" placeholder="misal: 52" min="30" max="120" step="0.1"></div>
         </div>
-        <button class="popup-save" style="margin-bottom:12px;" onclick="saveBB()">+ Tambah Data Berat</button>
+        <button class="popup-save" style="margin-bottom:16px;" onclick="saveBB()">+ Tambah Data Pertumbuhan</button>
+
+        <!-- Grafik berat -->
+        <div style="margin-bottom:16px;">
+          <div style="font-size:12px;font-weight:500;color:var(--text2);margin-bottom:8px;">⚖️ Grafik Berat Badan</div>
+          <div id="chart-bb"></div>
+        </div>
+
+        <!-- Grafik tinggi -->
+        <div style="margin-bottom:12px;">
+          <div style="font-size:12px;font-weight:500;color:var(--text2);margin-bottom:8px;">📏 Grafik Tinggi/Panjang Badan</div>
+          <div id="chart-tinggi"></div>
+        </div>
+
         <div id="bb-list"></div>
       </div>
     </div>
@@ -1226,23 +1241,27 @@ function renderProfilView(){
     ageStr=am>0?am+' bulan '+(aw%4)+' minggu':aw+' minggu '+ad+' hari';
   }
   document.getElementById('profil-usia-display').textContent='Usia: '+ageStr;
-  // berat terbaru
+  // berat & tinggi terbaru
   const latestBB=weights.length?weights[0]:null;
-  document.getElementById('profil-bb-display').textContent=latestBB?latestBB.gram+' gram ('+new Date(latestBB.tgl+'T12:00:00').toLocaleDateString('id-ID',{day:'numeric',month:'short'})+')':'Belum ada data';
+  document.getElementById('profil-bb-display').textContent=latestBB&&latestBB.gram?latestBB.gram+' gram ('+new Date(latestBB.tgl+'T12:00:00').toLocaleDateString('id-ID',{day:'numeric',month:'short'})+')':'Belum ada data';
+  const latestTB=weights.find(w=>w.tinggi);
+  document.getElementById('profil-tb-display').textContent=latestTB?latestTB.tinggi+' cm ('+new Date(latestTB.tgl+'T12:00:00').toLocaleDateString('id-ID',{day:'numeric',month:'short'})+')':'Belum ada data';
 }
 
 async function saveBB(){
-  const gram=parseInt(document.getElementById('bb-gram').value);
+  const gram=parseInt(document.getElementById('bb-gram').value)||null;
+  const tinggi=parseFloat(document.getElementById('bb-tinggi').value)||null;
   const tgl=document.getElementById('bb-tgl').value;
-  if(!gram||!tgl){showToast('Isi berat dan tanggal');return;}
+  if(!tgl||(!gram&&!tinggi)){showToast('Isi minimal satu data (berat atau tinggi)');return;}
   setSyncStatus('syncing');
-  const{data,error}=await sb.from('weights').insert([{user_id:currentUser.id,gram,tgl}]).select().single();
+  const{data,error}=await sb.from('weights').insert([{user_id:currentUser.id,gram,tinggi,tgl}]).select().single();
   if(error){setSyncStatus('error');showToast('⚠ Gagal simpan');return;}
   setSyncStatus('ok');
   weights.unshift(data);weights.sort((a,b)=>b.tgl.localeCompare(a.tgl));
   document.getElementById('bb-gram').value='';
+  document.getElementById('bb-tinggi').value='';
   renderBBList();renderProfilView();renderGoals();
-  showToast('✓ Berat tersimpan');
+  showToast('✓ Data pertumbuhan tersimpan');
 }
 
 async function deleteBB(id){
@@ -1253,14 +1272,67 @@ async function deleteBB(id){
 
 function renderBBList(){
   const el=document.getElementById('bb-list');
-  if(!weights.length){el.innerHTML='<p style="font-size:13px;color:var(--text2);text-align:center;padding:1rem 0;">Belum ada data berat.</p>';return;}
+  if(!weights.length){
+    el.innerHTML='<p style="font-size:13px;color:var(--text2);text-align:center;padding:1rem 0;">Belum ada data pertumbuhan.</p>';
+    document.getElementById('chart-bb').innerHTML='';
+    document.getElementById('chart-tinggi').innerHTML='';
+    return;
+  }
   el.innerHTML=weights.map(w=>`<div class="weight-item">
-    <div><span class="weight-val">${w.gram} gram</span></div>
+    <div>
+      ${w.gram?`<span class="weight-val">${w.gram}g</span> `:''}
+      ${w.tinggi?`<span style="font-size:13px;color:var(--text2);">${w.tinggi} cm</span>`:''}
+    </div>
     <div style="display:flex;align-items:center;gap:10px;">
       <span class="weight-date">${new Date(w.tgl+'T12:00:00').toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'})}</span>
       <button class="log-del" onclick="deleteBB(${w.id})">×</button>
     </div>
   </div>`).join('');
+
+  renderGrowthChart('chart-bb', weights.filter(w=>w.gram).map(w=>({tgl:w.tgl,val:w.gram/1000})), 'kg', '#7ab4d4');
+  renderGrowthChart('chart-tinggi', weights.filter(w=>w.tinggi).map(w=>({tgl:w.tgl,val:w.tinggi})), 'cm', '#7fbf8e');
+}
+
+function renderGrowthChart(elId, data, unit, color){
+  const el=document.getElementById(elId);
+  if(!data.length){el.innerHTML=`<p style="font-size:12px;color:var(--text2);padding:4px 0;">Belum ada data.</p>`;return;}
+  if(data.length===1){
+    el.innerHTML=`<p style="font-size:12px;color:var(--text2);padding:4px 0;">Tambahkan minimal 2 data untuk melihat grafik. Data saat ini: <strong>${data[0].val} ${unit}</strong></p>`;
+    return;
+  }
+  const sorted=[...data].sort((a,b)=>a.tgl.localeCompare(b.tgl));
+  const W=560, H=140, padL=40, padR=12, padT=10, padB=30;
+  const innerW=W-padL-padR, innerH=H-padT-padB;
+  const vals=sorted.map(d=>d.val);
+  const minV=Math.min(...vals), maxV=Math.max(...vals);
+  const range=maxV-minV||1;
+  const n=sorted.length;
+
+  function xPos(i){return padL+Math.round(i/(n-1)*innerW);}
+  function yPos(v){return padT+Math.round((1-(v-minV)/range)*innerH);}
+
+  // Y ticks
+  const yTicks=[minV, (minV+maxV)/2, maxV].map(v=>Math.round(v*10)/10);
+  const yGrid=yTicks.map(v=>{
+    const y=yPos(v);
+    return`<line x1="${padL}" y1="${y}" x2="${W-padR}" y2="${y}" stroke="var(--border)" stroke-width="1"/>
+           <text x="${padL-4}" y="${y+3}" font-size="9" fill="var(--text3)" text-anchor="end">${v}${unit}</text>`;
+  }).join('');
+
+  // X labels (show max 5 evenly)
+  const step=Math.max(1,Math.floor(n/5));
+  const xGrid=sorted.map((d,i)=>{
+    if(i%step!==0&&i!==n-1)return'';
+    const x=xPos(i);
+    const lbl=new Date(d.tgl+'T12:00:00').toLocaleDateString('id-ID',{day:'numeric',month:'short'});
+    return`<text x="${x}" y="${padT+innerH+18}" font-size="9" fill="var(--text3)" text-anchor="middle">${lbl}</text>`;
+  }).join('');
+
+  const pts=sorted.map((d,i)=>`${xPos(i)},${yPos(d.val)}`).join(' ');
+  const line=`<polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+  const dots=sorted.map((d,i)=>`<circle cx="${xPos(i)}" cy="${yPos(d.val)}" r="4" fill="${color}" stroke="white" stroke-width="1.5"><title>${d.val} ${unit} — ${d.tgl}</title></circle>`).join('');
+
+  el.innerHTML=`<svg width="100%" viewBox="0 0 ${W} ${H}" style="display:block;overflow:visible;">${yGrid}${xGrid}${line}${dots}</svg>`;
 }
 
 // ── RINGKASAN ──
