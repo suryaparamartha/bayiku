@@ -289,7 +289,7 @@ textarea.form-input{resize:vertical;min-height:65px;}
 <!-- APP -->
 <div id="app-screen">
   <header>
-    <div class="logo"><span>bayi<em>ku</em></span><span class="sync-dot" id="sync-dot"></span><span class="logo-baby" id="header-babyname"></span></div>
+    <div class="logo"><span>bayi<em>ku</em></span><span class="sync-dot" id="sync-dot"></span><span class="logo-baby" id="header-babyname"></span><span id="header-age" style="font-size:11px;color:var(--text3);font-family:'DM Sans',sans-serif;margin-left:4px;"></span></div>
     <div class="header-right">
       <div class="date-chip" id="today-label"></div>
       <button class="icon-btn" onclick="toggleTheme()" id="theme-btn">🌙</button>
@@ -912,6 +912,8 @@ function updateNextFeed(){
 function updateHeaderBabyName(){
   const el=document.getElementById('header-babyname');
   el.textContent=babyProfile?.nama?' · '+babyProfile.nama:'';
+  const ageEl=document.getElementById('header-age');
+  if(ageEl&&!babyProfile?.tgl_lahir)ageEl.textContent='';
 }
 
 // ── DAILY GOALS ──
@@ -1016,7 +1018,10 @@ function renderGoals(){
   const ageWeeks=Math.floor(ageDays/7);
   const ageRemDays=ageDays%7;
   let ageStr=ageMonths>0?ageMonths+' bln '+(ageWeeks%4)+' mgg':ageWeeks+' mgg '+ageRemDays+' hari';
-  document.getElementById('goals-age-label').textContent=ageStr+(latestBB?' · '+latestBB+'g':'');
+  document.getElementById('goals-age-label').textContent='';
+  // Show age in header
+  const ageEl=document.getElementById('header-age');
+  if(ageEl) ageEl.textContent=ageStr;
 
   document.getElementById('goal-minum').innerHTML=`<div class="goal-row"><span class="goal-label">🍼 Susu + DBF</span></div>${stackedBarHTML(mlBotol,mlDbf,goals.ml.min,goals.ml.max)}`;
   document.getElementById('goal-bak').innerHTML=`<div class="goal-row"><span class="goal-label">💧 BAK</span></div>${goalBarHTML(totalBak,goals.bak.min,goals.bak.max,'×')}`;
