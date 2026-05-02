@@ -408,7 +408,13 @@ textarea.form-input{resize:vertical;min-height:65px;}
       </div>
       <div class="log-toolbar" style="justify-content:space-between;">
         <div style="display:flex;align-items:center;gap:8px;">
-          <input type="date" id="log-date-filter" class="form-input" style="padding:4px 8px;font-size:12px;width:auto;" oninput="applyLogDateFilter()">
+          <div style="position:relative;display:inline-flex;align-items:center;">
+            <button onclick="document.getElementById('log-date-filter').showPicker?document.getElementById('log-date-filter').showPicker():document.getElementById('log-date-filter').click()" class="collapse-all-btn" id="log-date-btn" style="display:flex;align-items:center;gap:5px;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              <span id="log-date-label">Filter tanggal</span>
+            </button>
+            <input type="date" id="log-date-filter" style="position:absolute;opacity:0;width:1px;height:1px;pointer-events:none;" oninput="applyLogDateFilter()">
+          </div>
           <button class="collapse-all-btn" id="log-date-clear" onclick="clearLogDateFilter()" style="display:none;">✕ Hapus filter</button>
         </div>
         <button class="collapse-all-btn" id="collapse-all-btn" onclick="toggleCollapseAll()">Collapse Semua</button>
@@ -434,7 +440,13 @@ textarea.form-input{resize:vertical;min-height:65px;}
       </div>
       <div class="log-toolbar" style="justify-content:space-between;">
         <div style="display:flex;align-items:center;gap:8px;">
-          <input type="date" id="note-date-filter" class="form-input" style="padding:4px 8px;font-size:12px;width:auto;" oninput="applyNoteDateFilter()">
+          <div style="position:relative;display:inline-flex;align-items:center;">
+            <button onclick="document.getElementById('note-date-filter').showPicker?document.getElementById('note-date-filter').showPicker():document.getElementById('note-date-filter').click()" class="collapse-all-btn" id="note-date-btn" style="display:flex;align-items:center;gap:5px;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              <span id="note-date-label">Filter tanggal</span>
+            </button>
+            <input type="date" id="note-date-filter" style="position:absolute;opacity:0;width:1px;height:1px;pointer-events:none;" oninput="applyNoteDateFilter()">
+          </div>
           <button class="collapse-all-btn" id="note-date-clear" onclick="clearNoteDateFilter()" style="display:none;">✕ Hapus filter</button>
         </div>
         <button class="collapse-all-btn" id="note-collapse-btn" onclick="toggleNoteCollapseAll()">Collapse Semua</button>
@@ -1019,24 +1031,34 @@ let noteDateFilter=null;
 function applyLogDateFilter(){
   logDateFilter=document.getElementById('log-date-filter').value||null;
   document.getElementById('log-date-clear').style.display=logDateFilter?'inline-block':'none';
+  if(logDateFilter){
+    const lbl=new Date(logDateFilter+'T12:00:00').toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'});
+    document.getElementById('log-date-label').textContent=lbl;
+  }
   renderFullLog(currentFilter);
 }
 function clearLogDateFilter(){
   logDateFilter=null;
   document.getElementById('log-date-filter').value='';
   document.getElementById('log-date-clear').style.display='none';
+  document.getElementById('log-date-label').textContent='Filter tanggal';
   renderFullLog(currentFilter);
 }
 
 function applyNoteDateFilter(){
   noteDateFilter=document.getElementById('note-date-filter').value||null;
   document.getElementById('note-date-clear').style.display=noteDateFilter?'inline-block':'none';
+  if(noteDateFilter){
+    const lbl=new Date(noteDateFilter+'T12:00:00').toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'});
+    document.getElementById('note-date-label').textContent=lbl;
+  }
   renderNotes();
 }
 function clearNoteDateFilter(){
   noteDateFilter=null;
   document.getElementById('note-date-filter').value='';
   document.getElementById('note-date-clear').style.display='none';
+  document.getElementById('note-date-label').textContent='Filter tanggal';
   renderNotes();
 }
 
